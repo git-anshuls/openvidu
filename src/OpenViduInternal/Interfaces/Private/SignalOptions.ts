@@ -15,10 +15,10 @@
  *
  */
 
-import { Connection } from '../../../OpenVidu/Connection';
+import { Connection } from "../../../OpenVidu/Connection";
 
 export interface SignalOptions {
-    type?: string;
-    to?: Connection[];
-    data?: string;
+  type?: string;
+  to?: Connection[];
+  data?: string;
 }

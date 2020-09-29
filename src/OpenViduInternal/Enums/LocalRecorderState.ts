@@ -16,8 +16,8 @@
  */
 
 export enum LocalRecorderState {
-    READY = 'READY',
-    RECORDING = 'RECORDING',
-    PAUSED = 'PAUSED',
-    FINISHED = 'FINISHED'
+  READY = "READY",
+  RECORDING = "RECORDING",
+  PAUSED = "PAUSED",
+  FINISHED = "FINISHED",
 }

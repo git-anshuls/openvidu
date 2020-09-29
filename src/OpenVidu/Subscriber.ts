@@ -15,10 +15,10 @@
  *
  */
 
-import { Stream } from './Stream';
-import { StreamManager } from './StreamManager';
-import { SubscriberProperties } from '../OpenViduInternal/Interfaces/Public/SubscriberProperties';
-import { OpenViduLogger } from '../OpenViduInternal/Logger/OpenViduLogger';
+import { Stream } from "./Stream";
+import { StreamManager } from "./StreamManager";
+import { SubscriberProperties } from "../OpenViduInternal/Interfaces/Public/SubscriberProperties";
+import { OpenViduLogger } from "../OpenViduInternal/Logger/OpenViduLogger";
 
 /**
  * @hidden
@@ -29,46 +29,62 @@ const logger: OpenViduLogger = OpenViduLogger.getInstance();
  * Packs remote media streams. Participants automatically receive them when others publish their streams. Initialized with [[Session.subscribe]] method
  */
 export class Subscriber extends StreamManager {
+  /**
+   * @hidden
+   */
+  properties: SubscriberProperties;
 
-    /**
-     * @hidden
-     */
-    properties: SubscriberProperties;
+  /**
+   * @hidden
+   */
+  constructor(
+    stream: Stream,
+    targEl: string | HTMLElement,
+    properties: SubscriberProperties
+  ) {
+    super(stream, targEl);
+    this.element = this.targetElement;
+    this.stream = stream;
+    this.properties = properties;
+  }
 
-    /**
-     * @hidden
-     */
-    constructor(stream: Stream, targEl: string | HTMLElement, properties: SubscriberProperties) {
-        super(stream, targEl);
-        this.element = this.targetElement;
-        this.stream = stream;
-        this.properties = properties;
-    }
+  /**
+   * Subscribe or unsubscribe from the audio stream (if available). Calling this method twice in a row passing same value will have no effect
+   * @param value `true` to subscribe to the audio stream, `false` to unsubscribe from it
+   */
+  subscribeToAudio(value: boolean): Subscriber {
+    this.stream
+      .getMediaStream()
+      .getAudioTracks()
+      .forEach((track) => {
+        track.enabled = value;
+      });
+    this.stream.audioActive = value;
+    logger.info(
+      "'Subscriber' has " +
+        (value ? "subscribed to" : "unsubscribed from") +
+        " its audio stream"
+    );
+    return this;
+  }
 
-    /**
-     * Subscribe or unsubscribe from the audio stream (if available). Calling this method twice in a row passing same value will have no effect
-     * @param value `true` to subscribe to the audio stream, `false` to unsubscribe from it
-     */
-    subscribeToAudio(value: boolean): Subscriber {
-        this.stream.getMediaStream().getAudioTracks().forEach((track) => {
-            track.enabled = value;
-        });
-        this.stream.audioActive = value;
-        logger.info("'Subscriber' has " + (value ? 'subscribed to' : 'unsubscribed from') + ' its audio stream');
-        return this;
-    }
-
-    /**
-     * Subscribe or unsubscribe from the video stream (if available). Calling this method twice in a row passing same value will have no effect
-     * @param value `true` to subscribe to the video stream, `false` to unsubscribe from it
-     */
-    subscribeToVideo(value: boolean): Subscriber {
-        this.stream.getMediaStream().getVideoTracks().forEach((track) => {
-            track.enabled = value;
-        });
-        this.stream.videoActive = value;
-        logger.info("'Subscriber' has " + (value ? 'subscribed to' : 'unsubscribed from') + ' its video stream');
-        return this;
-    }
-
+  /**
+   * Subscribe or unsubscribe from the video stream (if available). Calling this method twice in a row passing same value will have no effect
+   * @param value `true` to subscribe to the video stream, `false` to unsubscribe from it
+   */
+  subscribeToVideo(value: boolean): Subscriber {
+    this.stream
+      .getMediaStream()
+      .getVideoTracks()
+      .forEach((track) => {
+        track.enabled = value;
+      });
+    this.stream.videoActive = value;
+    logger.info(
+      "'Subscriber' has " +
+        (value ? "subscribed to" : "unsubscribed from") +
+        " its video stream"
+    );
+    return this;
+  }
 }

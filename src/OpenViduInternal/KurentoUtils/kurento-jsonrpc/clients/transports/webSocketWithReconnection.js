@@ -36,116 +36,116 @@ onreconnected : callback method to invoke when the client successfully reconnect
 };
 */
 function WebSocketWithReconnection(config) {
-    var closing = false;
-    var registerMessageHandler;
-    var wsUri = config.uri;
-    var reconnecting = false;
+  var closing = false;
+  var registerMessageHandler;
+  var wsUri = config.uri;
+  var reconnecting = false;
 
-    var ws = new WebSocket(wsUri);
+  var ws = new WebSocket(wsUri);
+
+  ws.onopen = () => {
+    Logger.debug("WebSocket connected to " + wsUri);
+    if (config.onconnected) {
+      config.onconnected();
+    }
+  };
+
+  ws.onerror = (error) => {
+    Logger.error(
+      "Could not connect to " + wsUri + " (invoking onerror if defined)",
+      error
+    );
+    if (config.onerror) {
+      config.onerror(error);
+    }
+  };
+
+  var reconnectionOnClose = () => {
+    if (ws.readyState === CLOSED) {
+      if (closing) {
+        Logger.debug("Connection closed by user");
+      } else {
+        Logger.debug("Connection closed unexpectecly. Reconnecting...");
+        reconnect(MAX_RETRIES, 1);
+      }
+    } else {
+      Logger.debug("Close callback from previous websocket. Ignoring it");
+    }
+  };
+
+  ws.onclose = reconnectionOnClose;
+
+  function reconnect(maxRetries, numRetries) {
+    Logger.debug(
+      "reconnect (attempt #" + numRetries + ", max=" + maxRetries + ")"
+    );
+    if (numRetries === 1) {
+      if (reconnecting) {
+        Logger.warn(
+          "Trying to reconnect when already reconnecting... Ignoring this reconnection."
+        );
+        return;
+      } else {
+        reconnecting = true;
+      }
+      if (config.onreconnecting) {
+        config.onreconnecting();
+      }
+    }
+    reconnectAux(maxRetries, numRetries);
+  }
+
+  function reconnectAux(maxRetries, numRetries) {
+    Logger.debug("Reconnection attempt #" + numRetries);
+    ws.close();
+    ws = new WebSocket(wsUri);
 
     ws.onopen = () => {
-        Logger.debug("WebSocket connected to " + wsUri);
-        if (config.onconnected) {
-            config.onconnected();
+      Logger.debug(
+        "Reconnected to " + wsUri + " after " + numRetries + " attempts..."
+      );
+      reconnecting = false;
+      registerMessageHandler();
+      if (config.onreconnected()) {
+        config.onreconnected();
+      }
+      ws.onclose = reconnectionOnClose;
+    };
+
+    ws.onerror = (error) => {
+      Logger.warn("Reconnection error: ", error);
+      if (numRetries === maxRetries) {
+        if (config.ondisconnect) {
+          config.ondisconnect();
         }
+      } else {
+        setTimeout(() => {
+          reconnect(maxRetries, numRetries + 1);
+        }, RETRY_TIME_MS);
+      }
     };
+  }
 
-    ws.onerror = error => {
-        Logger.error(
-            "Could not connect to " + wsUri + " (invoking onerror if defined)",
-            error
-        );
-        if (config.onerror) {
-            config.onerror(error);
-        }
+  this.close = () => {
+    closing = true;
+    ws.close();
+  };
+
+  this.reconnectWs = () => {
+    Logger.debug("reconnectWs");
+    reconnect(MAX_RETRIES, 1);
+  };
+
+  this.send = (message) => {
+    ws.send(message);
+  };
+
+  this.addEventListener = (type, callback) => {
+    registerMessageHandler = () => {
+      ws.addEventListener(type, callback);
     };
-
-    var reconnectionOnClose = () => {
-        if (ws.readyState === CLOSED) {
-            if (closing) {
-                Logger.debug("Connection closed by user");
-            } else {
-                Logger.debug("Connection closed unexpectecly. Reconnecting...");
-                reconnect(MAX_RETRIES, 1);
-            }
-        } else {
-            Logger.debug("Close callback from previous websocket. Ignoring it");
-        }
-    };
-
-    ws.onclose = reconnectionOnClose;
-
-    function reconnect(maxRetries, numRetries) {
-        Logger.debug(
-            "reconnect (attempt #" + numRetries + ", max=" + maxRetries + ")"
-        );
-        if (numRetries === 1) {
-            if (reconnecting) {
-                Logger.warn(
-                    "Trying to reconnect when already reconnecting... Ignoring this reconnection."
-                );
-                return;
-            } else {
-                reconnecting = true;
-            }
-            if (config.onreconnecting) {
-                config.onreconnecting();
-            }
-        }
-        reconnectAux(maxRetries, numRetries);
-    }
-
-    function reconnectAux(maxRetries, numRetries) {
-        Logger.debug("Reconnection attempt #" + numRetries);
-        ws.close();
-        ws = new WebSocket(wsUri);
-
-        ws.onopen = () => {
-            Logger.debug(
-                "Reconnected to " + wsUri + " after " + numRetries + " attempts..."
-            );
-            reconnecting = false;
-            registerMessageHandler();
-            if (config.onreconnected()) {
-                config.onreconnected();
-            }
-            ws.onclose = reconnectionOnClose;
-        };
-
-        ws.onerror = error => {
-            Logger.warn("Reconnection error: ", error);
-            if (numRetries === maxRetries) {
-                if (config.ondisconnect) {
-                    config.ondisconnect();
-                }
-            } else {
-                setTimeout(() => {
-                    reconnect(maxRetries, numRetries + 1);
-                }, RETRY_TIME_MS);
-            }
-        };
-    }
-
-    this.close = () => {
-        closing = true;
-        ws.close();
-    };
-
-    this.reconnectWs = () => {
-        Logger.debug("reconnectWs");
-        reconnect(MAX_RETRIES, 1);
-    };
-
-    this.send = message => {
-        ws.send(message);
-    };
-
-    this.addEventListener = (type, callback) => {
-        registerMessageHandler = () => {
-            ws.addEventListener(type, callback);
-        };
-        registerMessageHandler();
-    };
+    registerMessageHandler();
+  };
 }
 
 module.exports = WebSocketWithReconnection;

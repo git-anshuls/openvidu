@@ -15,41 +15,47 @@
  *
  */
 
-import { LocalRecorder } from './LocalRecorder';
-import { Publisher } from './Publisher';
-import { Session } from './Session';
-import { Stream } from './Stream';
-import { StreamPropertyChangedEvent } from '../OpenViduInternal/Events/StreamPropertyChangedEvent';
-import { Device } from '../OpenViduInternal/Interfaces/Public/Device';
-import { OpenViduAdvancedConfiguration } from '../OpenViduInternal/Interfaces/Public/OpenViduAdvancedConfiguration';
-import { PublisherProperties } from '../OpenViduInternal/Interfaces/Public/PublisherProperties';
-import { CustomMediaStreamConstraints } from '../OpenViduInternal/Interfaces/Private/CustomMediaStreamConstraints';
-import { OpenViduError, OpenViduErrorName } from '../OpenViduInternal/Enums/OpenViduError';
-import { VideoInsertMode } from '../OpenViduInternal/Enums/VideoInsertMode';
-import { OpenViduLogger } from '../OpenViduInternal/Logger/OpenViduLogger';
+import { LocalRecorder } from "./LocalRecorder";
+import { Publisher } from "./Publisher";
+import { Session } from "./Session";
+import { Stream } from "./Stream";
+import { StreamPropertyChangedEvent } from "../OpenViduInternal/Events/StreamPropertyChangedEvent";
+import { Device } from "../OpenViduInternal/Interfaces/Public/Device";
+import { OpenViduAdvancedConfiguration } from "../OpenViduInternal/Interfaces/Public/OpenViduAdvancedConfiguration";
+import { PublisherProperties } from "../OpenViduInternal/Interfaces/Public/PublisherProperties";
+import { CustomMediaStreamConstraints } from "../OpenViduInternal/Interfaces/Private/CustomMediaStreamConstraints";
+import {
+  OpenViduError,
+  OpenViduErrorName,
+} from "../OpenViduInternal/Enums/OpenViduError";
+import { VideoInsertMode } from "../OpenViduInternal/Enums/VideoInsertMode";
+import { OpenViduLogger } from "../OpenViduInternal/Logger/OpenViduLogger";
 
-import * as screenSharingAuto from '../OpenViduInternal/ScreenSharing/Screen-Capturing-Auto';
-import * as screenSharing from '../OpenViduInternal/ScreenSharing/Screen-Capturing';
+import * as screenSharingAuto from "../OpenViduInternal/ScreenSharing/Screen-Capturing-Auto";
+import * as screenSharing from "../OpenViduInternal/ScreenSharing/Screen-Capturing";
 /**
  * @hidden
  */
-import EventEmitter = require('wolfy87-eventemitter');
+import EventEmitter = require("wolfy87-eventemitter");
 /**
  * @hidden
  */
-import RpcBuilder = require('../OpenViduInternal/KurentoUtils/kurento-jsonrpc');
+import RpcBuilder = require("../OpenViduInternal/KurentoUtils/kurento-jsonrpc");
 /**
  * @hidden
  */
-import platform = require('platform');
+import platform = require("platform");
 
-platform['isIonicIos'] = (platform.product === 'iPhone' || platform.product === 'iPad') && platform.ua!!.indexOf('Safari') === -1;
-platform['isIonicAndroid'] = platform.os!!.family === 'Android' && platform.name == "Android Browser";
+platform["isIonicIos"] =
+  (platform.product === "iPhone" || platform.product === "iPad") &&
+  platform.ua!!.indexOf("Safari") === -1;
+platform["isIonicAndroid"] =
+  platform.os!!.family === "Android" && platform.name == "Android Browser";
 
 /**
  * @hidden
  */
-const packageJson = require('../../package.json');
+const packageJson = require("../../package.json");
 /**
  * @hidden
  */
@@ -64,7 +70,6 @@ const logger: OpenViduLogger = OpenViduLogger.getInstance();
  * Use it to initialize objects of type [[Session]], [[Publisher]] and [[LocalRecorder]]
  */
 export class OpenVidu {
-
   private jsonRpcClient: any;
 
   /**
@@ -86,7 +91,7 @@ export class OpenVidu {
   /**
    * @hidden
    */
-  secret = '';
+  secret = "";
   /**
    * @hidden
    */
@@ -114,51 +119,82 @@ export class OpenVidu {
   /**
    * @hidden
    */
-  ee = new EventEmitter()
+  ee = new EventEmitter();
 
   constructor() {
     this.libraryVersion = packageJson.version;
     logger.info("'OpenVidu' initialized");
     logger.info("openvidu-browser version: " + this.libraryVersion);
 
-    if (platform.os!!.family === 'iOS' || platform.os!!.family === 'Android') {
+    if (platform.os!!.family === "iOS" || platform.os!!.family === "Android") {
       // Listen to orientationchange only on mobile devices
-      (<any>window).addEventListener('orientationchange', () => {
-        this.publishers.forEach(publisher => {
-          if (publisher.stream.isLocalStreamPublished && !!publisher.stream && !!publisher.stream.hasVideo && !!publisher.stream.streamManager.videos[0]) {
-
+      (<any>window).addEventListener("orientationchange", () => {
+        this.publishers.forEach((publisher) => {
+          if (
+            publisher.stream.isLocalStreamPublished &&
+            !!publisher.stream &&
+            !!publisher.stream.hasVideo &&
+            !!publisher.stream.streamManager.videos[0]
+          ) {
             let attempts = 0;
 
             const oldWidth = publisher.stream.videoDimensions.width;
             const oldHeight = publisher.stream.videoDimensions.height;
 
-            const getNewVideoDimensions = (): Promise<{ newWidth: number, newHeight: number }> => {
+            const getNewVideoDimensions = (): Promise<{
+              newWidth: number;
+              newHeight: number;
+            }> => {
               return new Promise((resolve, reject) => {
-                if (platform['isIonicIos']) {
+                if (platform["isIonicIos"]) {
                   // iOS Ionic. Limitation: must get new dimensions from an existing video element already inserted into DOM
                   resolve({
-                    newWidth: publisher.stream.streamManager.videos[0].video.videoWidth,
-                    newHeight: publisher.stream.streamManager.videos[0].video.videoHeight
+                    newWidth:
+                      publisher.stream.streamManager.videos[0].video.videoWidth,
+                    newHeight:
+                      publisher.stream.streamManager.videos[0].video
+                        .videoHeight,
                   });
                 } else {
                   // Rest of platforms
                   // New resolution got from different places for Chrome and Firefox. Chrome needs a videoWidth and videoHeight of a videoElement.
                   // Firefox needs getSettings from the videoTrack
-                  const firefoxSettings = publisher.stream.getMediaStream().getVideoTracks()[0].getSettings();
-                  const newWidth = <number>((platform.name!!.toLowerCase().indexOf('firefox') !== -1) ? firefoxSettings.width : publisher.videoReference.videoWidth);
-                  const newHeight = <number>((platform.name!!.toLowerCase().indexOf('firefox') !== -1) ? firefoxSettings.height : publisher.videoReference.videoHeight);
+                  const firefoxSettings = publisher.stream
+                    .getMediaStream()
+                    .getVideoTracks()[0]
+                    .getSettings();
+                  const newWidth = <number>(
+                    (platform.name!!.toLowerCase().indexOf("firefox") !== -1
+                      ? firefoxSettings.width
+                      : publisher.videoReference.videoWidth)
+                  );
+                  const newHeight = <number>(
+                    (platform.name!!.toLowerCase().indexOf("firefox") !== -1
+                      ? firefoxSettings.height
+                      : publisher.videoReference.videoHeight)
+                  );
                   resolve({ newWidth, newHeight });
                 }
               });
             };
 
             const repeatUntilChange = setInterval(() => {
-              getNewVideoDimensions().then(newDimensions => {
-                sendStreamPropertyChangedEvent(oldWidth, oldHeight, newDimensions.newWidth, newDimensions.newHeight);
+              getNewVideoDimensions().then((newDimensions) => {
+                sendStreamPropertyChangedEvent(
+                  oldWidth,
+                  oldHeight,
+                  newDimensions.newWidth,
+                  newDimensions.newHeight
+                );
               });
             }, 75);
 
-            const sendStreamPropertyChangedEvent = (oldWidth, oldHeight, newWidth, newHeight) => {
+            const sendStreamPropertyChangedEvent = (
+              oldWidth,
+              oldHeight,
+              newWidth,
+              newHeight
+            ) => {
               attempts++;
               if (attempts > 10) {
                 clearTimeout(repeatUntilChange);
@@ -166,24 +202,46 @@ export class OpenVidu {
               if (newWidth !== oldWidth || newHeight !== oldHeight) {
                 publisher.stream.videoDimensions = {
                   width: newWidth || 0,
-                  height: newHeight || 0
+                  height: newHeight || 0,
                 };
                 this.sendRequest(
-                  'streamPropertyChanged',
+                  "streamPropertyChanged",
                   {
                     streamId: publisher.stream.streamId,
-                    property: 'videoDimensions',
+                    property: "videoDimensions",
                     newValue: JSON.stringify(publisher.stream.videoDimensions),
-                    reason: 'deviceRotated'
+                    reason: "deviceRotated",
                   },
                   (error, response) => {
                     if (error) {
-                      logger.error("Error sending 'streamPropertyChanged' event", error);
+                      logger.error(
+                        "Error sending 'streamPropertyChanged' event",
+                        error
+                      );
                     } else {
-                      this.session.emitEvent('streamPropertyChanged', [new StreamPropertyChangedEvent(this.session, publisher.stream, 'videoDimensions', publisher.stream.videoDimensions, { width: oldWidth, height: oldHeight }, 'deviceRotated')]);
-                      publisher.emitEvent('streamPropertyChanged', [new StreamPropertyChangedEvent(publisher, publisher.stream, 'videoDimensions', publisher.stream.videoDimensions, { width: oldWidth, height: oldHeight }, 'deviceRotated')]);
+                      this.session.emitEvent("streamPropertyChanged", [
+                        new StreamPropertyChangedEvent(
+                          this.session,
+                          publisher.stream,
+                          "videoDimensions",
+                          publisher.stream.videoDimensions,
+                          { width: oldWidth, height: oldHeight },
+                          "deviceRotated"
+                        ),
+                      ]);
+                      publisher.emitEvent("streamPropertyChanged", [
+                        new StreamPropertyChangedEvent(
+                          publisher,
+                          publisher.stream,
+                          "videoDimensions",
+                          publisher.stream.videoDimensions,
+                          { width: oldWidth, height: oldHeight },
+                          "deviceRotated"
+                        ),
+                      ]);
                     }
-                  });
+                  }
+                );
                 clearTimeout(repeatUntilChange);
               }
             };
@@ -193,7 +251,6 @@ export class OpenVidu {
     }
   }
 
-
   /**
    * Returns new session
    */
@@ -202,11 +259,20 @@ export class OpenVidu {
     return this.session;
   }
 
-
   initPublisher(targetElement: string | HTMLElement): Publisher;
-  initPublisher(targetElement: string | HTMLElement, properties: PublisherProperties): Publisher;
-  initPublisher(targetElement: string | HTMLElement, completionHandler: (error: Error | undefined) => void): Publisher;
-  initPublisher(targetElement: string | HTMLElement, properties: PublisherProperties, completionHandler: (error: Error | undefined) => void): Publisher;
+  initPublisher(
+    targetElement: string | HTMLElement,
+    properties: PublisherProperties
+  ): Publisher;
+  initPublisher(
+    targetElement: string | HTMLElement,
+    completionHandler: (error: Error | undefined) => void
+  ): Publisher;
+  initPublisher(
+    targetElement: string | HTMLElement,
+    properties: PublisherProperties,
+    completionHandler: (error: Error | undefined) => void
+  ): Publisher;
 
   /**
    * Returns a new publisher
@@ -228,29 +294,60 @@ export class OpenVidu {
    * @param completionHandler `error` parameter is null if `initPublisher` succeeds, and is defined if it fails.
    *                          `completionHandler` function is called before the Publisher dispatches an `accessAllowed` or an `accessDenied` event
    */
-  initPublisher(targetElement: string | HTMLElement, param2?, param3?): Publisher {
-
+  initPublisher(
+    targetElement: string | HTMLElement,
+    param2?,
+    param3?
+  ): Publisher {
     let properties: PublisherProperties;
 
-    if (!!param2 && (typeof param2 !== 'function')) {
-
+    if (!!param2 && typeof param2 !== "function") {
       // Matches 'initPublisher(targetElement, properties)' or 'initPublisher(targetElement, properties, completionHandler)'
 
-      properties = (<PublisherProperties>param2);
+      properties = <PublisherProperties>param2;
 
       properties = {
-        audioSource: (typeof properties.audioSource !== 'undefined') ? properties.audioSource : undefined,
-        frameRate: (typeof MediaStreamTrack !== 'undefined' && properties.videoSource instanceof MediaStreamTrack) ? undefined : ((typeof properties.frameRate !== 'undefined') ? properties.frameRate : undefined),
-        insertMode: (typeof properties.insertMode !== 'undefined') ? ((typeof properties.insertMode === 'string') ? VideoInsertMode[properties.insertMode] : properties.insertMode) : VideoInsertMode.APPEND,
-        mirror: (typeof properties.mirror !== 'undefined') ? properties.mirror : true,
-        publishAudio: (typeof properties.publishAudio !== 'undefined') ? properties.publishAudio : true,
-        publishVideo: (typeof properties.publishVideo !== 'undefined') ? properties.publishVideo : true,
-        resolution: (typeof MediaStreamTrack !== 'undefined' && properties.videoSource instanceof MediaStreamTrack) ? undefined : ((typeof properties.resolution !== 'undefined') ? properties.resolution : '640x480'),
-        videoSource: (typeof properties.videoSource !== 'undefined') ? properties.videoSource : undefined,
-        filter: properties.filter
+        audioSource:
+          typeof properties.audioSource !== "undefined"
+            ? properties.audioSource
+            : undefined,
+        frameRate:
+          typeof MediaStreamTrack !== "undefined" &&
+          properties.videoSource instanceof MediaStreamTrack
+            ? undefined
+            : typeof properties.frameRate !== "undefined"
+            ? properties.frameRate
+            : undefined,
+        insertMode:
+          typeof properties.insertMode !== "undefined"
+            ? typeof properties.insertMode === "string"
+              ? VideoInsertMode[properties.insertMode]
+              : properties.insertMode
+            : VideoInsertMode.APPEND,
+        mirror:
+          typeof properties.mirror !== "undefined" ? properties.mirror : true,
+        publishAudio:
+          typeof properties.publishAudio !== "undefined"
+            ? properties.publishAudio
+            : true,
+        publishVideo:
+          typeof properties.publishVideo !== "undefined"
+            ? properties.publishVideo
+            : true,
+        resolution:
+          typeof MediaStreamTrack !== "undefined" &&
+          properties.videoSource instanceof MediaStreamTrack
+            ? undefined
+            : typeof properties.resolution !== "undefined"
+            ? properties.resolution
+            : "640x480",
+        videoSource:
+          typeof properties.videoSource !== "undefined"
+            ? properties.videoSource
+            : undefined,
+        filter: properties.filter,
       };
     } else {
-
       // Matches 'initPublisher(targetElement)' or 'initPublisher(targetElement, completionHandler)'
 
       properties = {
@@ -258,36 +355,37 @@ export class OpenVidu {
         mirror: true,
         publishAudio: true,
         publishVideo: true,
-        resolution: '640x480'
+        resolution: "640x480",
       };
     }
 
     const publisher: Publisher = new Publisher(targetElement, properties, this);
 
     let completionHandler: (error: Error | undefined) => void;
-    if (!!param2 && (typeof param2 === 'function')) {
+    if (!!param2 && typeof param2 === "function") {
       completionHandler = param2;
     } else if (!!param3) {
       completionHandler = param3;
     }
 
-    publisher.initialize()
+    publisher
+      .initialize()
       .then(() => {
         if (completionHandler !== undefined) {
           completionHandler(undefined);
         }
-        publisher.emitEvent('accessAllowed', []);
-      }).catch((error) => {
+        publisher.emitEvent("accessAllowed", []);
+      })
+      .catch((error) => {
         if (completionHandler !== undefined) {
           completionHandler(error);
         }
-        publisher.emitEvent('accessDenied', [error]);
+        publisher.emitEvent("accessDenied", [error]);
       });
 
     this.publishers.push(publisher);
     return publisher;
   }
-
 
   /**
    * Promisified version of [[OpenVidu.initPublisher]]
@@ -295,11 +393,16 @@ export class OpenVidu {
    * > WARNING: events `accessDialogOpened` and `accessDialogClosed` will not be dispatched if using this method instead of [[OpenVidu.initPublisher]]
    */
   initPublisherAsync(targetElement: string | HTMLElement): Promise<Publisher>;
-  initPublisherAsync(targetElement: string | HTMLElement, properties: PublisherProperties): Promise<Publisher>;
+  initPublisherAsync(
+    targetElement: string | HTMLElement,
+    properties: PublisherProperties
+  ): Promise<Publisher>;
 
-  initPublisherAsync(targetElement: string | HTMLElement, properties?: PublisherProperties): Promise<Publisher> {
+  initPublisherAsync(
+    targetElement: string | HTMLElement,
+    properties?: PublisherProperties
+  ): Promise<Publisher> {
     return new Promise<Publisher>((resolve, reject) => {
-
       let publisher: Publisher;
 
       const callback = (error: Error) => {
@@ -318,7 +421,6 @@ export class OpenVidu {
     });
   }
 
-
   /**
    * Returns a new local recorder for recording streams straight away from the browser
    * @param stream  Stream to record
@@ -326,7 +428,6 @@ export class OpenVidu {
   initLocalRecorder(stream: Stream): LocalRecorder {
     return new LocalRecorder(stream);
   }
-
 
   /**
    * Checks if the browser supports OpenVidu
@@ -338,7 +439,7 @@ export class OpenVidu {
     const userAgent = !!platform.ua ? platform.ua : navigator.userAgent;
 
     if (this.isIPhoneOrIPad(userAgent)) {
-      if (this.isIOSWithSafari(userAgent) || platform['isIonicIos']) {
+      if (this.isIOSWithSafari(userAgent) || platform["isIonicIos"]) {
         return 1;
       }
       return 0;
@@ -347,19 +448,23 @@ export class OpenVidu {
     // Accept: Chrome (desktop and Android), Firefox (desktop and Android), Opera (desktop and Android),
     // Safari (OSX and iOS), Ionic (Android and iOS), Samsung Internet Browser (Android)
     if (
-      (browser === 'Safari') ||
-      (browser === 'Chrome') || (browser === 'Chrome Mobile') ||
-      (browser === 'Firefox') || (browser === 'Firefox Mobile') ||
-      (browser === 'Opera') || (browser === 'Opera Mobile') ||
-      (browser === 'Android Browser') || (browser === 'Electron') ||
-      (browser === 'Samsung Internet Mobile') || (browser === 'Samsung Internet')
+      browser === "Safari" ||
+      browser === "Chrome" ||
+      browser === "Chrome Mobile" ||
+      browser === "Firefox" ||
+      browser === "Firefox Mobile" ||
+      browser === "Opera" ||
+      browser === "Opera Mobile" ||
+      browser === "Android Browser" ||
+      browser === "Electron" ||
+      browser === "Samsung Internet Mobile" ||
+      browser === "Samsung Internet"
     ) {
       return 1;
     }
     // Reject iPhones and iPads if not Safari ('Safari' also covers Ionic for iOS)
     // Reject others browsers not mentioned above
     return 0;
-
   }
 
   /**
@@ -372,125 +477,153 @@ export class OpenVidu {
     const family = platform.os!!.family;
 
     // Reject mobile devices
-    if (family === 'iOS' || family === 'Android') {
+    if (family === "iOS" || family === "Android") {
       return 0;
     }
 
-    if ((browser !== 'Chrome') && (browser !== 'Firefox') && (browser !== 'Opera') && (browser !== 'Electron') &&
-      (browser === 'Safari' && version < 13)) {
+    if (
+      browser !== "Chrome" &&
+      browser !== "Firefox" &&
+      browser !== "Opera" &&
+      browser !== "Electron" &&
+      browser === "Safari" &&
+      version < 13
+    ) {
       return 0;
     } else {
       return 1;
     }
   }
 
-
   /**
    * Collects information about the media input devices available on the system. You can pass property `deviceId` of a [[Device]] object as value of `audioSource` or `videoSource` properties in [[initPublisher]] method
    */
   getDevices(): Promise<Device[]> {
     return new Promise<Device[]>((resolve, reject) => {
-      navigator.mediaDevices.enumerateDevices().then((deviceInfos) => {
-        const devices: Device[] = [];
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((deviceInfos) => {
+          const devices: Device[] = [];
 
-        // Ionic Android  devices
-        if (platform['isIonicAndroid'] && typeof cordova != "undefined" && cordova?.plugins?.EnumerateDevicesPlugin) {
-          cordova.plugins.EnumerateDevicesPlugin.getEnumerateDevices().then((pluginDevices: Device[]) => {
-            let pluginAudioDevices: Device[] = [];
-            let videoDevices: Device[] = [];
-            let audioDevices: Device[] = [];
-            pluginAudioDevices = pluginDevices.filter((device: Device) => device.kind === 'audioinput');
-            videoDevices = deviceInfos.filter((device: Device) => device.kind === 'videoinput');
-            audioDevices = deviceInfos.filter((device: Device) => device.kind === 'audioinput');
-            videoDevices.forEach((deviceInfo, index) => {
-              if (!deviceInfo.label) {
-                let label = "";
-                if (index === 0) {
-                  label = "Front Camera";
-                } else if (index === 1) {
-                  label = "Back Camera";
-                } else {
-                  label = "Unknown Camera";
-                }
-                devices.push({
-                  kind: deviceInfo.kind,
-                  deviceId: deviceInfo.deviceId,
-                  label: label
-                });
-
-              } else {
-                devices.push({
-                  kind: deviceInfo.kind,
-                  deviceId: deviceInfo.deviceId,
-                  label: deviceInfo.label
-                });
-              }
-            });
-            audioDevices.forEach((deviceInfo, index) => {
-              if (!deviceInfo.label) {
-                let label = "";
-                switch (index) {
-                  case 0: // Default Microphone
-                    label = 'Default';
-                    break;
-                  case 1: // Microphone + Speakerphone
-                    const defaultMatch = pluginAudioDevices.filter((d) => d.label.includes('Built'))[0];
-                    label = defaultMatch ? defaultMatch.label : 'Built-in Microphone';
-                    break;
-                  case 2: // Headset Microphone
-                    const wiredMatch = pluginAudioDevices.filter((d) => d.label.includes('Wired'))[0];
-                    if (wiredMatch) {
-                      label = wiredMatch.label;
+          // Ionic Android  devices
+          if (
+            platform["isIonicAndroid"] &&
+            typeof cordova != "undefined" &&
+            cordova?.plugins?.EnumerateDevicesPlugin
+          ) {
+            cordova.plugins.EnumerateDevicesPlugin.getEnumerateDevices().then(
+              (pluginDevices: Device[]) => {
+                let pluginAudioDevices: Device[] = [];
+                let videoDevices: Device[] = [];
+                let audioDevices: Device[] = [];
+                pluginAudioDevices = pluginDevices.filter(
+                  (device: Device) => device.kind === "audioinput"
+                );
+                videoDevices = deviceInfos.filter(
+                  (device: Device) => device.kind === "videoinput"
+                );
+                audioDevices = deviceInfos.filter(
+                  (device: Device) => device.kind === "audioinput"
+                );
+                videoDevices.forEach((deviceInfo, index) => {
+                  if (!deviceInfo.label) {
+                    let label = "";
+                    if (index === 0) {
+                      label = "Front Camera";
+                    } else if (index === 1) {
+                      label = "Back Camera";
                     } else {
-                      label = 'Headset earpiece';
+                      label = "Unknown Camera";
                     }
-                    break;
-                  case 3:
-                    const wirelessMatch = pluginAudioDevices.filter((d) => d.label.includes('Bluetooth'))[0];
-                    label = wirelessMatch ? wirelessMatch.label : 'Wireless';
-                    break;
-                  default:
-                    label = "Unknown Microphone";
-                    break;
-                }
-                devices.push({
-                  kind: deviceInfo.kind,
-                  deviceId: deviceInfo.deviceId,
-                  label: label
+                    devices.push({
+                      kind: deviceInfo.kind,
+                      deviceId: deviceInfo.deviceId,
+                      label: label,
+                    });
+                  } else {
+                    devices.push({
+                      kind: deviceInfo.kind,
+                      deviceId: deviceInfo.deviceId,
+                      label: deviceInfo.label,
+                    });
+                  }
                 });
-
-              } else {
+                audioDevices.forEach((deviceInfo, index) => {
+                  if (!deviceInfo.label) {
+                    let label = "";
+                    switch (index) {
+                      case 0: // Default Microphone
+                        label = "Default";
+                        break;
+                      case 1: // Microphone + Speakerphone
+                        const defaultMatch = pluginAudioDevices.filter((d) =>
+                          d.label.includes("Built")
+                        )[0];
+                        label = defaultMatch
+                          ? defaultMatch.label
+                          : "Built-in Microphone";
+                        break;
+                      case 2: // Headset Microphone
+                        const wiredMatch = pluginAudioDevices.filter((d) =>
+                          d.label.includes("Wired")
+                        )[0];
+                        if (wiredMatch) {
+                          label = wiredMatch.label;
+                        } else {
+                          label = "Headset earpiece";
+                        }
+                        break;
+                      case 3:
+                        const wirelessMatch = pluginAudioDevices.filter((d) =>
+                          d.label.includes("Bluetooth")
+                        )[0];
+                        label = wirelessMatch
+                          ? wirelessMatch.label
+                          : "Wireless";
+                        break;
+                      default:
+                        label = "Unknown Microphone";
+                        break;
+                    }
+                    devices.push({
+                      kind: deviceInfo.kind,
+                      deviceId: deviceInfo.deviceId,
+                      label: label,
+                    });
+                  } else {
+                    devices.push({
+                      kind: deviceInfo.kind,
+                      deviceId: deviceInfo.deviceId,
+                      label: deviceInfo.label,
+                    });
+                  }
+                });
+                resolve(devices);
+              }
+            );
+          } else {
+            // Rest of platforms
+            deviceInfos.forEach((deviceInfo) => {
+              if (
+                deviceInfo.kind === "audioinput" ||
+                deviceInfo.kind === "videoinput"
+              ) {
                 devices.push({
                   kind: deviceInfo.kind,
                   deviceId: deviceInfo.deviceId,
-                  label: deviceInfo.label
+                  label: deviceInfo.label,
                 });
               }
             });
             resolve(devices);
-          });
-        } else {
-
-          // Rest of platforms
-          deviceInfos.forEach(deviceInfo => {
-            if (deviceInfo.kind === 'audioinput' || deviceInfo.kind === 'videoinput') {
-              devices.push({
-                kind: deviceInfo.kind,
-                deviceId: deviceInfo.deviceId,
-                label: deviceInfo.label
-              });
-            }
-          });
-          resolve(devices);
-        }
-      }).catch((error) => {
-        logger.error('Error getting devices', error);
-        reject(error);
-      });
+          }
+        })
+        .catch((error) => {
+          logger.error("Error getting devices", error);
+          reject(error);
+        });
     });
   }
-
-
 
   /**
    * Get a MediaStream object that you can customize before calling [[initPublisher]] (pass _MediaStreamTrack_ property of the _MediaStream_ value resolved by the Promise as `audioSource` or `videoSource` properties in [[initPublisher]])
@@ -541,16 +674,23 @@ export class OpenVidu {
    */
   getUserMedia(options: PublisherProperties): Promise<MediaStream> {
     return new Promise<MediaStream>((resolve, reject) => {
-
-      const askForAudioStreamOnly = (previousMediaStream: MediaStream, constraints: MediaStreamConstraints) => {
-        const definedAudioConstraint = ((constraints.audio === undefined) ? true : constraints.audio);
-        const constraintsAux: MediaStreamConstraints = { audio: definedAudioConstraint, video: false };
-        navigator.mediaDevices.getUserMedia(constraintsAux)
-          .then(audioOnlyStream => {
+      const askForAudioStreamOnly = (
+        previousMediaStream: MediaStream,
+        constraints: MediaStreamConstraints
+      ) => {
+        const definedAudioConstraint =
+          constraints.audio === undefined ? true : constraints.audio;
+        const constraintsAux: MediaStreamConstraints = {
+          audio: definedAudioConstraint,
+          video: false,
+        };
+        navigator.mediaDevices
+          .getUserMedia(constraintsAux)
+          .then((audioOnlyStream) => {
             previousMediaStream.addTrack(audioOnlyStream.getAudioTracks()[0]);
             resolve(previousMediaStream);
           })
-          .catch(error => {
+          .catch((error) => {
             previousMediaStream.getAudioTracks().forEach((track) => {
               track.stop();
             });
@@ -559,90 +699,113 @@ export class OpenVidu {
             });
             reject(this.generateAudioDeviceError(error, constraintsAux));
           });
-      }
+      };
 
-      this.generateMediaConstraints(options).then(myConstraints => {
+      this.generateMediaConstraints(options)
+        .then((myConstraints) => {
+          if (
+            (!!myConstraints.videoTrack && !!myConstraints.audioTrack) ||
+            (!!myConstraints.audioTrack &&
+              myConstraints.constraints?.video === false) ||
+            (!!myConstraints.videoTrack &&
+              myConstraints.constraints?.audio === false)
+          ) {
+            // No need to call getUserMedia at all. Both tracks provided, or only AUDIO track provided or only VIDEO track provided
+            resolve(
+              this.addAlreadyProvidedTracks(myConstraints, new MediaStream())
+            );
+          } else {
+            // getUserMedia must be called. AUDIO or VIDEO are requesting a new track
 
-        if (!!myConstraints.videoTrack && !!myConstraints.audioTrack ||
-          !!myConstraints.audioTrack && myConstraints.constraints?.video === false ||
-          !!myConstraints.videoTrack && myConstraints.constraints?.audio === false) {
-
-          // No need to call getUserMedia at all. Both tracks provided, or only AUDIO track provided or only VIDEO track provided
-          resolve(this.addAlreadyProvidedTracks(myConstraints, new MediaStream()));
-
-        } else {
-          // getUserMedia must be called. AUDIO or VIDEO are requesting a new track
-
-          // Delete already provided constraints for audio or video
-          if (!!myConstraints.videoTrack) {
-            delete myConstraints.constraints!.video;
-          }
-          if (!!myConstraints.audioTrack) {
-            delete myConstraints.constraints!.audio;
-          }
-
-          let mustAskForAudioTrackLater = false;
-          if (typeof options.videoSource === 'string') {
-            // Video is deviceId or screen sharing
-            if (options.videoSource === 'screen' ||
-              options.videoSource === 'window' ||
-              (platform.name === 'Electron' && options.videoSource.startsWith('screen:'))) {
-              // Video is screen sharing
-              mustAskForAudioTrackLater = !myConstraints.audioTrack && (options.audioSource !== null && options.audioSource !== false);
-              if (navigator.mediaDevices['getDisplayMedia'] && platform.name !== 'Electron') {
-                // getDisplayMedia supported
-                navigator.mediaDevices['getDisplayMedia']({ video: true })
-                  .then(mediaStream => {
-                    this.addAlreadyProvidedTracks(myConstraints, mediaStream);
-                    if (mustAskForAudioTrackLater) {
-                      askForAudioStreamOnly(mediaStream, <MediaStreamConstraints>myConstraints.constraints);
-                      return;
-                    } else {
-                      resolve(mediaStream);
-                    }
-                  })
-                  .catch(error => {
-                    let errorName: OpenViduErrorName = OpenViduErrorName.SCREEN_CAPTURE_DENIED;
-                    const errorMessage = error.toString();
-                    reject(new OpenViduError(errorName, errorMessage));
-                  });
-                return;
-              } else {
-                // getDisplayMedia NOT supported. Can perform getUserMedia below with already calculated constraints
-              }
-            } else {
-              // Video is deviceId. Can perform getUserMedia below with already calculated constraints
+            // Delete already provided constraints for audio or video
+            if (!!myConstraints.videoTrack) {
+              delete myConstraints.constraints!.video;
             }
+            if (!!myConstraints.audioTrack) {
+              delete myConstraints.constraints!.audio;
+            }
+
+            let mustAskForAudioTrackLater = false;
+            if (typeof options.videoSource === "string") {
+              // Video is deviceId or screen sharing
+              if (
+                options.videoSource === "screen" ||
+                options.videoSource === "window" ||
+                (platform.name === "Electron" &&
+                  options.videoSource.startsWith("screen:"))
+              ) {
+                // Video is screen sharing
+                mustAskForAudioTrackLater =
+                  !myConstraints.audioTrack &&
+                  options.audioSource !== null &&
+                  options.audioSource !== false;
+                if (
+                  navigator.mediaDevices["getDisplayMedia"] &&
+                  platform.name !== "Electron"
+                ) {
+                  // getDisplayMedia supported
+                  navigator.mediaDevices["getDisplayMedia"]({ video: true })
+                    .then((mediaStream) => {
+                      this.addAlreadyProvidedTracks(myConstraints, mediaStream);
+                      if (mustAskForAudioTrackLater) {
+                        askForAudioStreamOnly(
+                          mediaStream,
+                          <MediaStreamConstraints>myConstraints.constraints
+                        );
+                        return;
+                      } else {
+                        resolve(mediaStream);
+                      }
+                    })
+                    .catch((error) => {
+                      let errorName: OpenViduErrorName =
+                        OpenViduErrorName.SCREEN_CAPTURE_DENIED;
+                      const errorMessage = error.toString();
+                      reject(new OpenViduError(errorName, errorMessage));
+                    });
+                  return;
+                } else {
+                  // getDisplayMedia NOT supported. Can perform getUserMedia below with already calculated constraints
+                }
+              } else {
+                // Video is deviceId. Can perform getUserMedia below with already calculated constraints
+              }
+            }
+            // Use already calculated constraints
+            const constraintsAux = mustAskForAudioTrackLater
+              ? { video: myConstraints.constraints!.video }
+              : myConstraints.constraints;
+            navigator.mediaDevices
+              .getUserMedia(constraintsAux)
+              .then((mediaStream) => {
+                this.addAlreadyProvidedTracks(myConstraints, mediaStream);
+                if (mustAskForAudioTrackLater) {
+                  askForAudioStreamOnly(
+                    mediaStream,
+                    <MediaStreamConstraints>myConstraints.constraints
+                  );
+                  return;
+                } else {
+                  resolve(mediaStream);
+                }
+              })
+              .catch((error) => {
+                let errorName: OpenViduErrorName;
+                const errorMessage = error.toString();
+                if (!(options.videoSource === "screen")) {
+                  errorName = OpenViduErrorName.DEVICE_ACCESS_DENIED;
+                } else {
+                  errorName = OpenViduErrorName.SCREEN_CAPTURE_DENIED;
+                }
+                reject(new OpenViduError(errorName, errorMessage));
+              });
           }
-          // Use already calculated constraints
-          const constraintsAux = mustAskForAudioTrackLater ? { video: myConstraints.constraints!.video } : myConstraints.constraints;
-          navigator.mediaDevices.getUserMedia(constraintsAux)
-            .then(mediaStream => {
-              this.addAlreadyProvidedTracks(myConstraints, mediaStream);
-              if (mustAskForAudioTrackLater) {
-                askForAudioStreamOnly(mediaStream, <MediaStreamConstraints>myConstraints.constraints);
-                return;
-              } else {
-                resolve(mediaStream);
-              }
-            })
-            .catch(error => {
-              let errorName: OpenViduErrorName;
-              const errorMessage = error.toString();
-              if (!(options.videoSource === 'screen')) {
-                errorName = OpenViduErrorName.DEVICE_ACCESS_DENIED;
-              } else {
-                errorName = OpenViduErrorName.SCREEN_CAPTURE_DENIED;
-              }
-              reject(new OpenViduError(errorName, errorMessage));
-            });
-        }
-      }).catch((error: OpenViduError) => {
-        reject(error);
-      });
+        })
+        .catch((error: OpenViduError) => {
+          reject(error);
+        });
     });
   }
-
 
   /* tslint:disable:no-empty */
   /**
@@ -652,7 +815,6 @@ export class OpenVidu {
     logger.enableProdMode();
   }
   /* tslint:enable:no-empty */
-
 
   /**
    * Set OpenVidu advanced configuration options. Currently `configuration` is an object with the following optional properties (see [[OpenViduAdvancedConfiguration]] for more details):
@@ -666,23 +828,23 @@ export class OpenVidu {
     this.advancedConfiguration = configuration;
   }
 
-
   /* Hidden methods */
 
   /**
    * @hidden
    */
-  generateMediaConstraints(publisherProperties: PublisherProperties): Promise<CustomMediaStreamConstraints> {
+  generateMediaConstraints(
+    publisherProperties: PublisherProperties
+  ): Promise<CustomMediaStreamConstraints> {
     return new Promise<CustomMediaStreamConstraints>((resolve, reject) => {
-
       const myConstraints: CustomMediaStreamConstraints = {
         audioTrack: undefined,
         videoTrack: undefined,
         constraints: {
           audio: undefined,
-          video: undefined
-        }
-      }
+          video: undefined,
+        },
+      };
       const audioSource = publisherProperties.audioSource;
       const videoSource = publisherProperties.videoSource;
 
@@ -695,18 +857,31 @@ export class OpenVidu {
         // No video track
         myConstraints.constraints!.video = false;
       }
-      if (myConstraints.constraints!.audio === false && myConstraints.constraints!.video === false) {
+      if (
+        myConstraints.constraints!.audio === false &&
+        myConstraints.constraints!.video === false
+      ) {
         // ERROR! audioSource and videoSource cannot be both false at the same time
-        reject(new OpenViduError(OpenViduErrorName.NO_INPUT_SOURCE_SET,
-          "Properties 'audioSource' and 'videoSource' cannot be set to false or null at the same time"));
+        reject(
+          new OpenViduError(
+            OpenViduErrorName.NO_INPUT_SOURCE_SET,
+            "Properties 'audioSource' and 'videoSource' cannot be set to false or null at the same time"
+          )
+        );
       }
 
       // CASE 2: MediaStreamTracks
-      if (typeof MediaStreamTrack !== 'undefined' && audioSource instanceof MediaStreamTrack) {
+      if (
+        typeof MediaStreamTrack !== "undefined" &&
+        audioSource instanceof MediaStreamTrack
+      ) {
         // Already provided audio track
         myConstraints.audioTrack = audioSource;
       }
-      if (typeof MediaStreamTrack !== 'undefined' && videoSource instanceof MediaStreamTrack) {
+      if (
+        typeof MediaStreamTrack !== "undefined" &&
+        videoSource instanceof MediaStreamTrack
+      ) {
         // Already provided video track
         myConstraints.videoTrack = videoSource;
       }
@@ -718,36 +893,45 @@ export class OpenVidu {
       if (videoSource === undefined) {
         myConstraints.constraints!.video = {
           width: {
-            ideal: 640
+            ideal: 640,
           },
           height: {
-            ideal: 480
-          }
+            ideal: 480,
+          },
         };
       }
 
       // CASE 3.5: give values to resolution and frameRate if video not null/false
       if (videoSource !== null && videoSource !== false) {
         if (!!publisherProperties.resolution) {
-          const widthAndHeight = publisherProperties.resolution.toLowerCase().split('x');
+          const widthAndHeight = publisherProperties.resolution
+            .toLowerCase()
+            .split("x");
           const idealWidth = Number(widthAndHeight[0]);
           const idealHeight = Number(widthAndHeight[1]);
           myConstraints.constraints!.video = {
             width: {
-              ideal: idealWidth
+              ideal: idealWidth,
             },
             height: {
-              ideal: idealHeight
-            }
-          }
+              ideal: idealHeight,
+            },
+          };
         }
         if (!!publisherProperties.frameRate) {
-          (<MediaTrackConstraints>myConstraints.constraints!.video).frameRate = { ideal: publisherProperties.frameRate };
+          (<MediaTrackConstraints>(
+            myConstraints.constraints!.video
+          )).frameRate = { ideal: publisherProperties.frameRate };
         }
       }
 
       // CASE 4: deviceId or screen sharing
-      this.configureDeviceIdOrScreensharing(myConstraints, publisherProperties, resolve, reject);
+      this.configureDeviceIdOrScreensharing(
+        myConstraints,
+        publisherProperties,
+        resolve,
+        reject
+      );
 
       resolve(myConstraints);
     });
@@ -764,24 +948,36 @@ export class OpenVidu {
         onconnected: onConnectSucces,
         ondisconnect: this.disconnectCallback.bind(this),
         onreconnecting: this.reconnectingCallback.bind(this),
-        onreconnected: this.reconnectedCallback.bind(this)
+        onreconnected: this.reconnectedCallback.bind(this),
       },
       rpc: {
         requestTimeout: 10000,
         participantJoined: this.session.onParticipantJoined.bind(this.session),
-        participantPublished: this.session.onParticipantPublished.bind(this.session),
-        participantUnpublished: this.session.onParticipantUnpublished.bind(this.session),
+        participantPublished: this.session.onParticipantPublished.bind(
+          this.session
+        ),
+        participantUnpublished: this.session.onParticipantUnpublished.bind(
+          this.session
+        ),
         participantLeft: this.session.onParticipantLeft.bind(this.session),
-        participantEvicted: this.session.onParticipantEvicted.bind(this.session),
+        participantEvicted: this.session.onParticipantEvicted.bind(
+          this.session
+        ),
         recordingStarted: this.session.onRecordingStarted.bind(this.session),
         recordingStopped: this.session.onRecordingStopped.bind(this.session),
         sendMessage: this.session.onNewMessage.bind(this.session),
-        streamPropertyChanged: this.session.onStreamPropertyChanged.bind(this.session),
-        networkQualityChanged: this.session.onNetworkQualityChangedChanged.bind(this.session),
-        filterEventDispatched: this.session.onFilterEventDispatched.bind(this.session),
+        streamPropertyChanged: this.session.onStreamPropertyChanged.bind(
+          this.session
+        ),
+        networkQualityChanged: this.session.onNetworkQualityChangedChanged.bind(
+          this.session
+        ),
+        filterEventDispatched: this.session.onFilterEventDispatched.bind(
+          this.session
+        ),
         iceCandidate: this.session.recvIceCandidate.bind(this.session),
-        mediaError: this.session.onMediaError.bind(this.session)
-      }
+        mediaError: this.session.onMediaError.bind(this.session),
+      },
     };
     this.jsonRpcClient = new RpcBuilder.clients.JsonRpcClient(config);
   }
@@ -801,7 +997,13 @@ export class OpenVidu {
       callback = params;
       params = {};
     }
-    logger.debug('Sending request: {method:"' + method + '", params: ' + JSON.stringify(params) + '}');
+    logger.debug(
+      'Sending request: {method:"' +
+        method +
+        '", params: ' +
+        JSON.stringify(params) +
+        "}"
+    );
     this.jsonRpcClient.send(method, params, callback);
   }
 
@@ -829,43 +1031,60 @@ export class OpenVidu {
   /**
    * @hidden
    */
-  generateAudioDeviceError(error, constraints: MediaStreamConstraints): OpenViduError {
-    if (error.name === 'Error') {
+  generateAudioDeviceError(
+    error,
+    constraints: MediaStreamConstraints
+  ): OpenViduError {
+    if (error.name === "Error") {
       // Safari OverConstrainedError has as name property 'Error' instead of 'OverConstrainedError'
       error.name = error.constructor.name;
     }
     let errorName, errorMessage: string;
     switch (error.name.toLowerCase()) {
-      case 'notfounderror':
+      case "notfounderror":
         errorName = OpenViduErrorName.INPUT_AUDIO_DEVICE_NOT_FOUND;
         errorMessage = error.toString();
         return new OpenViduError(errorName, errorMessage);
-      case 'notallowederror':
+      case "notallowederror":
         errorName = OpenViduErrorName.DEVICE_ACCESS_DENIED;
         errorMessage = error.toString();
         return new OpenViduError(errorName, errorMessage);
-      case 'overconstrainederror':
-        if (error.constraint.toLowerCase() === 'deviceid') {
+      case "overconstrainederror":
+        if (error.constraint.toLowerCase() === "deviceid") {
           errorName = OpenViduErrorName.INPUT_AUDIO_DEVICE_NOT_FOUND;
-          errorMessage = "Audio input device with deviceId '" + (<ConstrainDOMStringParameters>(<MediaTrackConstraints>constraints.audio).deviceId!!).exact + "' not found";
+          errorMessage =
+            "Audio input device with deviceId '" +
+            (<ConstrainDOMStringParameters>(
+              (<MediaTrackConstraints>constraints.audio).deviceId!!
+            )).exact +
+            "' not found";
         } else {
           errorName = OpenViduErrorName.PUBLISHER_PROPERTIES_ERROR;
-          errorMessage = "Audio input device doesn't support the value passed for constraint '" + error.constraint + "'";
+          errorMessage =
+            "Audio input device doesn't support the value passed for constraint '" +
+            error.constraint +
+            "'";
         }
         return new OpenViduError(errorName, errorMessage);
-      case 'notreadableerror':
+      case "notreadableerror":
         errorName = OpenViduErrorName.DEVICE_ALREADY_IN_USE;
         errorMessage = error.toString();
-        return (new OpenViduError(errorName, errorMessage));
+        return new OpenViduError(errorName, errorMessage);
       default:
-        return new OpenViduError(OpenViduErrorName.INPUT_AUDIO_DEVICE_GENERIC_ERROR, error.toString());
+        return new OpenViduError(
+          OpenViduErrorName.INPUT_AUDIO_DEVICE_GENERIC_ERROR,
+          error.toString()
+        );
     }
   }
 
   /**
    * @hidden
    */
-  addAlreadyProvidedTracks(myConstraints: CustomMediaStreamConstraints, mediaStream: MediaStream) {
+  addAlreadyProvidedTracks(
+    myConstraints: CustomMediaStreamConstraints,
+    mediaStream: MediaStream
+  ) {
     if (!!myConstraints.videoTrack) {
       mediaStream.addTrack(myConstraints.videoTrack);
     }
@@ -878,66 +1097,99 @@ export class OpenVidu {
   /**
    * @hidden
    */
-  protected configureDeviceIdOrScreensharing(myConstraints: CustomMediaStreamConstraints, publisherProperties: PublisherProperties, resolve, reject) {
+  protected configureDeviceIdOrScreensharing(
+    myConstraints: CustomMediaStreamConstraints,
+    publisherProperties: PublisherProperties,
+    resolve,
+    reject
+  ) {
     const audioSource = publisherProperties.audioSource;
     const videoSource = publisherProperties.videoSource;
-    if (typeof audioSource === 'string') {
+    if (typeof audioSource === "string") {
       myConstraints.constraints!.audio = { deviceId: { exact: audioSource } };
     }
 
-    if (typeof videoSource === 'string') {
-
+    if (typeof videoSource === "string") {
       if (!this.isScreenShare(videoSource)) {
         this.setVideoSource(myConstraints, videoSource);
-
       } else {
-
         // Screen sharing
 
         if (!this.checkScreenSharingCapabilities()) {
-          const error = new OpenViduError(OpenViduErrorName.SCREEN_SHARING_NOT_SUPPORTED, 'You can only screen share in desktop Chrome, Firefox, Opera, Safari (>=13.0) or Electron. Detected client: ' + platform.name);
+          const error = new OpenViduError(
+            OpenViduErrorName.SCREEN_SHARING_NOT_SUPPORTED,
+            "You can only screen share in desktop Chrome, Firefox, Opera, Safari (>=13.0) or Electron. Detected client: " +
+              platform.name
+          );
           logger.error(error);
           reject(error);
         } else {
-
-          if (platform.name === 'Electron') {
+          if (platform.name === "Electron") {
             const prefix = "screen:";
             const videoSourceString: string = videoSource;
-            const electronScreenId = videoSourceString.substr(videoSourceString.indexOf(prefix) + prefix.length);
+            const electronScreenId = videoSourceString.substr(
+              videoSourceString.indexOf(prefix) + prefix.length
+            );
             (<any>myConstraints.constraints!.video) = {
               mandatory: {
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: electronScreenId
-              }
+                chromeMediaSource: "desktop",
+                chromeMediaSourceId: electronScreenId,
+              },
             };
             resolve(myConstraints);
-
           } else {
-
-            if (!!this.advancedConfiguration.screenShareChromeExtension && !(platform.name!.indexOf('Firefox') !== -1) && !navigator.mediaDevices['getDisplayMedia']) {
-
+            if (
+              !!this.advancedConfiguration.screenShareChromeExtension &&
+              !(platform.name!.indexOf("Firefox") !== -1) &&
+              !navigator.mediaDevices["getDisplayMedia"]
+            ) {
               // Custom screen sharing extension for Chrome (and Opera) and no support for MediaDevices.getDisplayMedia()
 
               screenSharing.getScreenConstraints((error, screenConstraints) => {
-                if (!!error || !!screenConstraints.mandatory && screenConstraints.mandatory.chromeMediaSource === 'screen') {
-                  if (error === 'permission-denied' || error === 'PermissionDeniedError') {
-                    const error = new OpenViduError(OpenViduErrorName.SCREEN_CAPTURE_DENIED, 'You must allow access to one window of your desktop');
+                if (
+                  !!error ||
+                  (!!screenConstraints.mandatory &&
+                    screenConstraints.mandatory.chromeMediaSource === "screen")
+                ) {
+                  if (
+                    error === "permission-denied" ||
+                    error === "PermissionDeniedError"
+                  ) {
+                    const error = new OpenViduError(
+                      OpenViduErrorName.SCREEN_CAPTURE_DENIED,
+                      "You must allow access to one window of your desktop"
+                    );
                     logger.error(error);
                     reject(error);
                   } else {
-                    const extensionId = this.advancedConfiguration.screenShareChromeExtension!.split('/').pop()!!.trim();
-                    screenSharing.getChromeExtensionStatus(extensionId, status => {
-                      if (status === 'installed-disabled') {
-                        const error = new OpenViduError(OpenViduErrorName.SCREEN_EXTENSION_DISABLED, 'You must enable the screen extension');
-                        logger.error(error);
-                        reject(error);
+                    const extensionId = this.advancedConfiguration
+                      .screenShareChromeExtension!.split("/")
+                      .pop()!!
+                      .trim();
+                    screenSharing.getChromeExtensionStatus(
+                      extensionId,
+                      (status) => {
+                        if (status === "installed-disabled") {
+                          const error = new OpenViduError(
+                            OpenViduErrorName.SCREEN_EXTENSION_DISABLED,
+                            "You must enable the screen extension"
+                          );
+                          logger.error(error);
+                          reject(error);
+                        }
+                        if (status === "not-installed") {
+                          const error = new OpenViduError(
+                            OpenViduErrorName.SCREEN_EXTENSION_NOT_INSTALLED,
+                            <string>(
+                              this.advancedConfiguration
+                                .screenShareChromeExtension
+                            )
+                          );
+                          logger.error(error);
+                          reject(error);
+                        }
                       }
-                      if (status === 'not-installed') {
-                        const error = new OpenViduError(OpenViduErrorName.SCREEN_EXTENSION_NOT_INSTALLED, (<string>this.advancedConfiguration.screenShareChromeExtension));
-                        logger.error(error);
-                        reject(error);
-                      }
-                    });
+                    );
                     return;
                   }
                 } else {
@@ -947,41 +1199,62 @@ export class OpenVidu {
               });
               return;
             } else {
-
-              if (navigator.mediaDevices['getDisplayMedia']) {
+              if (navigator.mediaDevices["getDisplayMedia"]) {
                 // getDisplayMedia support (Chrome >= 72, Firefox >= 66, Safari >= 13)
                 resolve(myConstraints);
               } else {
                 // Default screen sharing extension for Chrome/Opera, or is Firefox < 66
-                const firefoxString = platform.name!.indexOf('Firefox') !== -1 ? publisherProperties.videoSource : undefined;
+                const firefoxString =
+                  platform.name!.indexOf("Firefox") !== -1
+                    ? publisherProperties.videoSource
+                    : undefined;
 
-                screenSharingAuto.getScreenId(firefoxString, (error, sourceId, screenConstraints) => {
-                  if (!!error) {
-                    if (error === 'not-installed') {
-                      const extensionUrl = !!this.advancedConfiguration.screenShareChromeExtension ? this.advancedConfiguration.screenShareChromeExtension :
-                        'https://chrome.google.com/webstore/detail/openvidu-screensharing/lfcgfepafnobdloecchnfaclibenjold';
-                      const err = new OpenViduError(OpenViduErrorName.SCREEN_EXTENSION_NOT_INSTALLED, extensionUrl);
-                      logger.error(err);
-                      reject(err);
-                    } else if (error === 'installed-disabled') {
-                      const err = new OpenViduError(OpenViduErrorName.SCREEN_EXTENSION_DISABLED, 'You must enable the screen extension');
-                      logger.error(err);
-                      reject(err);
-                    } else if (error === 'permission-denied') {
-                      const err = new OpenViduError(OpenViduErrorName.SCREEN_CAPTURE_DENIED, 'You must allow access to one window of your desktop');
-                      logger.error(err);
-                      reject(err);
+                screenSharingAuto.getScreenId(
+                  firefoxString,
+                  (error, sourceId, screenConstraints) => {
+                    if (!!error) {
+                      if (error === "not-installed") {
+                        const extensionUrl = !!this.advancedConfiguration
+                          .screenShareChromeExtension
+                          ? this.advancedConfiguration
+                              .screenShareChromeExtension
+                          : "https://chrome.google.com/webstore/detail/openvidu-screensharing/lfcgfepafnobdloecchnfaclibenjold";
+                        const err = new OpenViduError(
+                          OpenViduErrorName.SCREEN_EXTENSION_NOT_INSTALLED,
+                          extensionUrl
+                        );
+                        logger.error(err);
+                        reject(err);
+                      } else if (error === "installed-disabled") {
+                        const err = new OpenViduError(
+                          OpenViduErrorName.SCREEN_EXTENSION_DISABLED,
+                          "You must enable the screen extension"
+                        );
+                        logger.error(err);
+                        reject(err);
+                      } else if (error === "permission-denied") {
+                        const err = new OpenViduError(
+                          OpenViduErrorName.SCREEN_CAPTURE_DENIED,
+                          "You must allow access to one window of your desktop"
+                        );
+                        logger.error(err);
+                        reject(err);
+                      } else {
+                        const err = new OpenViduError(
+                          OpenViduErrorName.GENERIC_ERROR,
+                          "Unknown error when accessing screen share"
+                        );
+                        logger.error(err);
+                        logger.error(error);
+                        reject(err);
+                      }
                     } else {
-                      const err = new OpenViduError(OpenViduErrorName.GENERIC_ERROR, 'Unknown error when accessing screen share');
-                      logger.error(err);
-                      logger.error(error);
-                      reject(err);
+                      myConstraints.constraints!.video =
+                        screenConstraints.video;
+                      resolve(myConstraints);
                     }
-                  } else {
-                    myConstraints.constraints!.video = screenConstraints.video;
-                    resolve(myConstraints);
                   }
-                });
+                );
                 return;
               }
             }
@@ -994,54 +1267,66 @@ export class OpenVidu {
   /**
    * @hidden
    */
-  protected setVideoSource(myConstraints: CustomMediaStreamConstraints, videoSource: string) {
+  protected setVideoSource(
+    myConstraints: CustomMediaStreamConstraints,
+    videoSource: string
+  ) {
     if (!myConstraints.constraints!.video) {
       myConstraints.constraints!.video = {};
     }
-    (<MediaTrackConstraints>myConstraints.constraints!.video)['deviceId'] = { exact: videoSource };
+    (<MediaTrackConstraints>myConstraints.constraints!.video)["deviceId"] = {
+      exact: videoSource,
+    };
   }
-
 
   /* Private methods */
 
   private disconnectCallback(): void {
-    logger.warn('Websocket connection lost');
+    logger.warn("Websocket connection lost");
     if (this.isRoomAvailable()) {
-      this.session.onLostConnection('networkDisconnect');
+      this.session.onLostConnection("networkDisconnect");
     } else {
-      alert('Connection error. Please reload page.');
+      alert("Connection error. Please reload page.");
     }
   }
 
   private reconnectingCallback(): void {
-    logger.warn('Websocket connection lost (reconnecting)');
+    logger.warn("Websocket connection lost (reconnecting)");
     if (!this.isRoomAvailable()) {
-      alert('Connection error. Please reload page.');
+      alert("Connection error. Please reload page.");
     } else {
-      this.session.emitEvent('reconnecting', []);
+      this.session.emitEvent("reconnecting", []);
     }
   }
 
   private reconnectedCallback(): void {
-    logger.warn('Websocket reconnected');
+    logger.warn("Websocket reconnected");
     if (this.isRoomAvailable()) {
       if (!!this.session.connection) {
-        this.sendRequest('connect', { sessionId: this.session.connection.rpcSessionId }, (error, response) => {
-          if (!!error) {
-            logger.error(error);
-            logger.warn('Websocket was able to reconnect to OpenVidu Server, but your Connection was already destroyed due to timeout. You are no longer a participant of the Session and your media streams have been destroyed');
-            this.session.onLostConnection("networkDisconnect");
-            this.jsonRpcClient.close(4101, "Reconnection fault");
-          } else {
-            this.jsonRpcClient.resetPing();
-            this.session.onRecoveredConnection();
+        this.sendRequest(
+          "connect",
+          { sessionId: this.session.connection.rpcSessionId },
+          (error, response) => {
+            if (!!error) {
+              logger.error(error);
+              logger.warn(
+                "Websocket was able to reconnect to OpenVidu Server, but your Connection was already destroyed due to timeout. You are no longer a participant of the Session and your media streams have been destroyed"
+              );
+              this.session.onLostConnection("networkDisconnect");
+              this.jsonRpcClient.close(4101, "Reconnection fault");
+            } else {
+              this.jsonRpcClient.resetPing();
+              this.session.onRecoveredConnection();
+            }
           }
-        });
+        );
       } else {
-        logger.warn('There was no previous connection when running reconnection callback');
+        logger.warn(
+          "There was no previous connection when running reconnection callback"
+        );
       }
     } else {
-      alert('Connection error. Please reload page.');
+      alert("Connection error. Please reload page.");
     }
   }
 
@@ -1049,29 +1334,36 @@ export class OpenVidu {
     if (this.session !== undefined && this.session instanceof Session) {
       return true;
     } else {
-      logger.warn('Session instance not found');
+      logger.warn("Session instance not found");
       return false;
     }
   }
 
   private isScreenShare(videoSource: string) {
-    return videoSource === 'screen' ||
-      videoSource === 'window' ||
-      (platform.name === 'Electron' && videoSource.startsWith('screen:'))
+    return (
+      videoSource === "screen" ||
+      videoSource === "window" ||
+      (platform.name === "Electron" && videoSource.startsWith("screen:"))
+    );
   }
 
   private isIPhoneOrIPad(userAgent): boolean {
-    const isTouchable = 'ontouchend' in document;
+    const isTouchable = "ontouchend" in document;
     const isIPad = /\b(\w*Macintosh\w*)\b/.test(userAgent) && isTouchable;
-    const isIPhone = /\b(\w*iPhone\w*)\b/.test(userAgent) && /\b(\w*Mobile\w*)\b/.test(userAgent) && isTouchable;
+    const isIPhone =
+      /\b(\w*iPhone\w*)\b/.test(userAgent) &&
+      /\b(\w*Mobile\w*)\b/.test(userAgent) &&
+      isTouchable;
 
     return isIPad || isIPhone;
   }
 
   private isIOSWithSafari(userAgent): boolean {
-    return /\b(\w*Apple\w*)\b/.test(navigator.vendor) && /\b(\w*Safari\w*)\b/.test(userAgent)
-      && !/\b(\w*CriOS\w*)\b/.test(userAgent) && !/\b(\w*FxiOS\w*)\b/.test(userAgent);
+    return (
+      /\b(\w*Apple\w*)\b/.test(navigator.vendor) &&
+      /\b(\w*Safari\w*)\b/.test(userAgent) &&
+      !/\b(\w*CriOS\w*)\b/.test(userAgent) &&
+      !/\b(\w*FxiOS\w*)\b/.test(userAgent)
+    );
   }
-
-
 }

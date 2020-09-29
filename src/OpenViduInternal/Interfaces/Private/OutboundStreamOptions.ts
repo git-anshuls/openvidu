@@ -15,9 +15,9 @@
  *
  */
 
-import { PublisherProperties } from '../Public/PublisherProperties';
+import { PublisherProperties } from "../Public/PublisherProperties";
 
 export interface OutboundStreamOptions {
-    publisherProperties: PublisherProperties;
-    mediaConstraints: MediaStreamConstraints;
+  publisherProperties: PublisherProperties;
+  mediaConstraints: MediaStreamConstraints;
 }

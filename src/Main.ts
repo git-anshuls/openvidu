@@ -1,5 +1,5 @@
-import { OpenVidu } from './OpenVidu/OpenVidu';
+import { OpenVidu } from "./OpenVidu/OpenVidu";
 
 if (window) {
-    window['OpenVidu'] = OpenVidu;
+  window["OpenVidu"] = OpenVidu;
 }

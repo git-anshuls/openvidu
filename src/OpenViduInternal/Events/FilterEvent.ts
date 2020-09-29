@@ -15,33 +15,30 @@
  *
  */
 
-import { Event } from './Event';
-import { Stream } from '../../OpenVidu/Stream';
-import { Filter } from '../../OpenVidu/Filter';
-
+import { Event } from "./Event";
+import { Stream } from "../../OpenVidu/Stream";
+import { Filter } from "../../OpenVidu/Filter";
 
 /**
  * Defines every event dispatched by audio/video stream filters. You can subscribe to filter events by calling [[Filter.addEventListener]]
  */
 export class FilterEvent extends Event {
+  /**
+   * Data of the event
+   */
+  data: Object;
 
-    /**
-     * Data of the event
-     */
-    data: Object;
+  /**
+   * @hidden
+   */
+  constructor(target: Filter, eventType: string, data: Object) {
+    super(false, target, eventType);
+    this.data = data;
+  }
 
-    /**
-     * @hidden
-     */
-    constructor(target: Filter, eventType: string, data: Object) {
-        super(false, target, eventType);
-        this.data = data;
-    }
-
-    /**
-     * @hidden
-     */
-    // tslint:disable-next-line:no-empty
-    callDefaultBehavior() { }
-
+  /**
+   * @hidden
+   */
+  // tslint:disable-next-line:no-empty
+  callDefaultBehavior() {}
 }

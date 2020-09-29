@@ -15,10 +15,9 @@
  *
  */
 
-import { Event } from './Event';
-import { Connection } from '../../OpenVidu/Connection';
-import { Session } from '../..';
-
+import { Event } from "./Event";
+import { Connection } from "../../OpenVidu/Connection";
+import { Session } from "../..";
 
 /**
  * Defines the following events:
@@ -30,31 +29,34 @@ import { Session } from '../..';
  * - You can further configure how the events are dispatched by setting property `publisherSpeakingEventsOptions` in the call of [[OpenVidu.setAdvancedConfiguration]]
  */
 export class PublisherSpeakingEvent extends Event {
+  /**
+   * The client that started or stopped speaking
+   */
+  connection: Connection;
 
-    /**
-     * The client that started or stopped speaking
-     */
-    connection: Connection;
+  /**
+   * The streamId of the Stream affected by the speaking event
+   */
+  streamId: string;
 
-    /**
-     * The streamId of the Stream affected by the speaking event
-     */
-    streamId: string;
+  /**
+   * @hidden
+   */
+  constructor(
+    target: Session,
+    type: string,
+    connection: Connection,
+    streamId: string
+  ) {
+    super(false, target, type);
+    this.type = type;
+    this.connection = connection;
+    this.streamId = streamId;
+  }
 
-    /**
-     * @hidden
-     */
-    constructor(target: Session, type: string, connection: Connection, streamId: string) {
-        super(false, target, type);
-        this.type = type;
-        this.connection = connection;
-        this.streamId = streamId;
-    }
-
-    /**
-     * @hidden
-     */
-    // tslint:disable-next-line:no-empty
-    callDefaultBehavior() { }
-
+  /**
+   * @hidden
+   */
+  // tslint:disable-next-line:no-empty
+  callDefaultBehavior() {}
 }

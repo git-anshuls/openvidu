@@ -15,10 +15,10 @@
  *
  */
 
-import { Event } from './Event';
-import { Session } from '../../OpenVidu/Session';
-import { Stream } from '../../OpenVidu/Stream';
-import { StreamManager } from '../../OpenVidu/StreamManager';
+import { Event } from "./Event";
+import { Session } from "../../OpenVidu/Session";
+import { Stream } from "../../OpenVidu/Stream";
+import { StreamManager } from "../../OpenVidu/StreamManager";
 
 /**
  * Defines event `streamPropertyChanged` dispatched by [[Session]] as well as by [[StreamManager]] ([[Publisher]] and [[Subscriber]]).
@@ -26,52 +26,57 @@ import { StreamManager } from '../../OpenVidu/StreamManager';
  * any change in any of its mutable properties (see [[changedProperty]]).
  */
 export class StreamPropertyChangedEvent extends Event {
+  /**
+   * The Stream whose property has changed. You can always identify the user publishing the changed stream by consulting property [[Stream.connection]]
+   */
+  stream: Stream;
 
-    /**
-     * The Stream whose property has changed. You can always identify the user publishing the changed stream by consulting property [[Stream.connection]]
-     */
-    stream: Stream;
+  /**
+   * The property of the stream that changed. This value is either `"videoActive"`, `"audioActive"`, `"videoDimensions"` or `"filter"`
+   */
+  changedProperty: string;
 
-    /**
-     * The property of the stream that changed. This value is either `"videoActive"`, `"audioActive"`, `"videoDimensions"` or `"filter"`
-     */
-    changedProperty: string;
+  /**
+   * Cause of the change on the stream's property:
+   * - For `videoActive`: `"publishVideo"`
+   * - For `audioActive`: `"publishAudio"`
+   * - For `videoDimensions`: `"deviceRotated"` or `"screenResized"`
+   * - For `filter`: `"applyFilter"`, `"execFilterMethod"` or `"removeFilter"`
+   */
+  reason: string;
 
-    /**
-     * Cause of the change on the stream's property:
-     * - For `videoActive`: `"publishVideo"`
-     * - For `audioActive`: `"publishAudio"`
-     * - For `videoDimensions`: `"deviceRotated"` or `"screenResized"`
-     * - For `filter`: `"applyFilter"`, `"execFilterMethod"` or `"removeFilter"`
-     */
-    reason: string;
+  /**
+   * New value of the property (after change, current value)
+   */
+  newValue: Object;
 
-    /**
-     * New value of the property (after change, current value)
-     */
-    newValue: Object;
+  /**
+   * Previous value of the property (before change)
+   */
+  oldValue: Object;
 
-    /**
-     * Previous value of the property (before change)
-     */
-    oldValue: Object;
+  /**
+   * @hidden
+   */
+  constructor(
+    target: Session | StreamManager,
+    stream: Stream,
+    changedProperty: string,
+    newValue: Object,
+    oldValue: Object,
+    reason: string
+  ) {
+    super(false, target, "streamPropertyChanged");
+    this.stream = stream;
+    this.changedProperty = changedProperty;
+    this.newValue = newValue;
+    this.oldValue = oldValue;
+    this.reason = reason;
+  }
 
-    /**
-     * @hidden
-     */
-    constructor(target: Session | StreamManager, stream: Stream, changedProperty: string, newValue: Object, oldValue: Object, reason: string) {
-        super(false, target, 'streamPropertyChanged');
-        this.stream = stream;
-        this.changedProperty = changedProperty;
-        this.newValue = newValue;
-        this.oldValue = oldValue;
-        this.reason = reason;
-    }
-
-    /**
-     * @hidden
-     */
-    // tslint:disable-next-line:no-empty
-    callDefaultBehavior() { }
-
+  /**
+   * @hidden
+   */
+  // tslint:disable-next-line:no-empty
+  callDefaultBehavior() {}
 }

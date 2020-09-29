@@ -15,9 +15,8 @@
  *
  */
 
-import { Event } from './Event';
-import { StreamManager } from '../../OpenVidu/StreamManager';
-
+import { Event } from "./Event";
+import { StreamManager } from "../../OpenVidu/StreamManager";
 
 /**
  * Defines the following events:
@@ -26,24 +25,22 @@ import { StreamManager } from '../../OpenVidu/StreamManager';
  * - `videoElementDestroyed`: dispatched by [[Publisher]] and [[Subscriber]] whenever an HTML video element has been removed from DOM by OpenVidu Browser library.
  */
 export class VideoElementEvent extends Event {
+  /**
+   * Video element that was created or destroyed
+   */
+  element: HTMLVideoElement;
 
-    /**
-     * Video element that was created or destroyed
-     */
-    element: HTMLVideoElement;
+  /**
+   * @hidden
+   */
+  constructor(element: HTMLVideoElement, target: StreamManager, type: string) {
+    super(false, target, type);
+    this.element = element;
+  }
 
-    /**
-     * @hidden
-     */
-    constructor(element: HTMLVideoElement, target: StreamManager, type: string) {
-        super(false, target, type);
-        this.element = element;
-    }
-
-    /**
-     * @hidden
-     */
-    // tslint:disable-next-line:no-empty
-    callDefaultBehavior() { }
-
+  /**
+   * @hidden
+   */
+  // tslint:disable-next-line:no-empty
+  callDefaultBehavior() {}
 }

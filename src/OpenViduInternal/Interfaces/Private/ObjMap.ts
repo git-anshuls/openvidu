@@ -15,4 +15,6 @@
  *
  */
 
-export interface ObjMap<T> { [s: string]: T; }
+export interface ObjMap<T> {
+  [s: string]: T;
+}
